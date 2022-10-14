@@ -16,3 +16,4 @@ There are a few things already in the roadmap:
 ## Credits
 * The scd4x library is Sparkfun's [SparkFun SCD4x CO2 Sensor Library](https://github.com/sparkfun/SparkFun_SCD4x_Arduino_Library) which I modified a bit to adapt it to the Flipper.
 * The basic app structure was adapted from https://github.com/Mywk/FlipperTemperatureSensor
+* [@litui](https://twitter.com/litui) for the inspiration to make this
