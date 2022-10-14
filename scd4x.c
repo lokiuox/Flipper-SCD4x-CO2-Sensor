@@ -925,7 +925,10 @@ bool sendCommandArgs(uint16_t command, uint16_t arguments) {
     success &= furi_hal_i2c_tx(I2C_BUS, SCD4x_ADDRESS, buffer, 5, TIMEOUT);
     if(_printDebug == true)
         furi_log_print_format(
-            FuriLogLevelDebug, "SCD4x", "sendCstatic 
+            FuriLogLevelDebug, "SCD4x", "sendCommandArgs: tx success %d", success);
+
+    // Release BUS
+    furi_hal_i2c_release(I2C_BUS);
     return success;
 }
 
