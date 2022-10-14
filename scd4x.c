@@ -1,45 +1,40 @@
 /*
   This is a library written for the SCD4x family of CO2 sensors
-  SparkFun sells these at its website: www.sparkfun.com
-  Do you like this library? Help support SparkFun. Buy a board!
-  https://www.sparkfun.com/products/18365
-
-  Written by Paul Clark @ SparkFun Electronics, June 2nd, 2021
+  
+  Original Arduino library written by Paul Clark @ SparkFun Electronics, June 2nd, 2021
+  Ported to the Flipper Zero by lokiuox
 
   The SCD41 measures CO2 from 400ppm to 5000ppm with an accuracy of +/- 40ppm + 5% of reading
 
   This library handles the initialization of the SCD4x and outputs
   CO2 levels, relative humidty, and temperature.
 
-  https://github.com/sparkfun/SparkFun_SCD4x_Arduino_Library
-
-  SparkFun code, firmware, and software is released under the MIT License.
+  This software is released under the MIT License.
   Please see LICENSE.md for more details.
 */
 
 #include "scd4x.h"
-
-uint32_t TIMEOUT;
 #define I2C_BUS &furi_hal_i2c_handle_external
 
+uint32_t TIMEOUT;
 bool _printDebug = false;
 
 //Sensor type
 scd4x_sensor_type_e _sensorType;
 
 //Global main datums
-float _co2 = 0;
-float _temperature = 0;
-float _humidity = 0;
+static float _co2 = 0;
+static float _temperature = 0;
+static float _humidity = 0;
 
 //These track the staleness of the current data
 //This allows us to avoid calling readMeasurement() every time individual datums are requested
-bool co2HasBeenReported = true;
-bool humidityHasBeenReported = true;
-bool temperatureHasBeenReported = true;
+static bool co2HasBeenReported = true;
+static bool humidityHasBeenReported = true;
+static bool temperatureHasBeenReported = true;
 
 //Keep track of whether periodic measurements are in progress
-bool periodicMeasurementsAreRunning = false;
+static bool periodicMeasurementsAreRunning = false;
 
 void SCD4x_init(scd4x_sensor_type_e sensorType) {
     // Constructor
@@ -930,10 +925,7 @@ bool sendCommandArgs(uint16_t command, uint16_t arguments) {
     success &= furi_hal_i2c_tx(I2C_BUS, SCD4x_ADDRESS, buffer, 5, TIMEOUT);
     if(_printDebug == true)
         furi_log_print_format(
-            FuriLogLevelDebug, "SCD4x", "sendCommandArgs: tx success %d", success);
-
-    // Release BUS
-    furi_hal_i2c_release(I2C_BUS);
+            FuriLogLevelDebug, "SCD4x", "sendCstatic 
     return success;
 }
 

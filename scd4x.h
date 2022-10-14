@@ -1,25 +1,19 @@
 /*
   This is a library written for the SCD4x family of CO2 sensors
-  SparkFun sells these at its website: www.sparkfun.com
-  Do you like this library? Help support SparkFun. Buy a board!
-  https://www.sparkfun.com/products/18365
-
-  Written by Paul Clark @ SparkFun Electronics, June 2nd, 2021
+  
+  Original Arduino library written by Paul Clark @ SparkFun Electronics, June 2nd, 2021
+  Ported to the Flipper Zero by lokiuox
 
   The SCD41 measures CO2 from 400ppm to 5000ppm with an accuracy of +/- 40ppm + 5% of reading
 
   This library handles the initialization of the SCD4x and outputs
   CO2 levels, relative humidty, and temperature.
 
-  https://github.com/sparkfun/SparkFun_SCD4x_Arduino_Library
-
-
-  SparkFun code, firmware, and software is released under the MIT License.
+  This software is released under the MIT License.
   Please see LICENSE.md for more details.
 */
 
-#ifndef __SparkFun_SCD4x_FLIPPER_LIBARARY_H__
-#define __SparkFun_SCD4x_FLIPPER_LIBARARY_H__
+#pragma once
 
 // Uncomment the next #define to EXclude any debug logging from the code, by default debug logging code will be included
 
@@ -157,4 +151,3 @@ bool readRegister(uint16_t registerAddress, uint16_t* response, uint16_t delayMi
 uint8_t computeCRC8(uint8_t data[], uint8_t len);
 
 char convertHexToASCII(uint8_t digit);
-#endif
