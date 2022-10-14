@@ -1,0 +1,14 @@
+App(
+    appid="co2_sensor",
+    name="[SCD4x] CO2 Sensor",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="co2_sensor_app",
+    cdefines=["APP_CO2_SENSOR"],
+    requires=[
+        "gui",
+    ],
+    stack_size=2 * 1024,
+    order=90,
+	fap_icon="co2_sensor.png",
+    fap_category="GPIO",
+)
