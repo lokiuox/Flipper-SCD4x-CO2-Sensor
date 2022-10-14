@@ -64,20 +64,20 @@ static void render_callback(Canvas* canvas, void* ctx) {
         //canvas_draw_str(canvas, 80, 24, "Humidity");
 
         // Draw vertical lines
-        canvas_draw_line(canvas, 68, 16, 68, 50);
-        canvas_draw_line(canvas, 69, 16, 69, 50);
+        canvas_draw_line(canvas, 66, 16, 66, 55);
+        canvas_draw_line(canvas, 67, 16, 67, 55);
 
         // Draw horizontal lines
         canvas_draw_line(canvas, 3, 27, 144, 27);
         canvas_draw_line(canvas, 3, 41, 144, 41);
 
         // Draw temperature and humidity values
-        canvas_draw_str(canvas, 78, 24, ts_data_buffer_temperature_c);
-        canvas_draw_str(canvas, 105, 24, "C");
-        canvas_draw_str(canvas, 78, 38, ts_data_buffer_humidity);
-        canvas_draw_str(canvas, 105, 38, "%");
-        canvas_draw_str(canvas, 78, 52, ts_data_buffer_co2);
-        canvas_draw_str(canvas, 105, 52, "ppm");
+        canvas_draw_str(canvas, 72, 24, ts_data_buffer_temperature_c);
+        canvas_draw_str(canvas, 102, 24, "C");
+        canvas_draw_str(canvas, 72, 38, ts_data_buffer_humidity);
+        canvas_draw_str(canvas, 102, 38, "%");
+        canvas_draw_str(canvas, 72, 52, ts_data_buffer_co2);
+        canvas_draw_str(canvas, 102, 52, "ppm");
 
     } break;
     default:
