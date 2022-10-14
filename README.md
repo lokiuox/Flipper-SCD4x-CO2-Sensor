@@ -4,6 +4,10 @@ A PoC Sensirion SCD4x CO2 sensor plugin for the Flipper Zero.
 This app is a WIP, the code is a bit of a mess and needs some more work, I just made the GUI functional enough to show the sensor readings (the included library should be fully functional though).    
 
 ![Screenshot](/images/flipper_screenshot.png)
+## Connections
+The connections are pretty straight-forward. Some boards have different form factors, but usually all have i2c (SDA+SCL), just look for those labels.    
+
+![Connections](/images/SCD4x_gpio_0.5x.png)
 ## Contributions
 Contributions are welcome!    
 There are a few things already in the roadmap:
