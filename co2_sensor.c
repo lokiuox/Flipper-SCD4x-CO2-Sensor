@@ -109,6 +109,5 @@ extern int32_t co2_sensor_app(void* p) {
     view_dispatcher_run(app->view_dispatcher);
     co2_settings_save(&app->settings);
     co2_app_free(app);
-    FURI_LOG_D("SCD4x", "COMPLETE");
     return 0;
 }
