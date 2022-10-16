@@ -1,178 +1,108 @@
 /* Flipper App to read the values from a SCD4X Sensor  */
-
+#include <furi.h>
 #include <gui/gui.h>
 #include <input/input.h>
 #include <gui/modules/submenu.h>
 #include <gui/modules/dialog_ex.h>
+#include <toolbox/saved_struct.h>
+#include <storage/storage.h>
 #include <core/log.h>
 
 #include <notification/notification_messages.h>
 
 #include <string.h>
-#include "scd4x.h"
+#include "co2_sensor.h"
 
-#define DATA_BUFFER_SIZE 8
-
-typedef enum {
-    Initializing,
-    NoSensor,
-    PendingUpdate,
-} SensorStatus;
-
-typedef enum {
-    EventTypeTick,
-    EventTypeKey,
-} EventType;
-
-typedef struct {
-    EventType type;
-    InputEvent input;
-} PluginEvent;
-
-static SensorStatus sensor_current_status = Initializing;
-
-extern const NotificationSequence sequence_blink_red_100;
-extern const NotificationSequence sequence_blink_blue_100;
-
-// Temperature and Humidity data buffers, ready to print
-char ts_data_buffer_temperature_c[DATA_BUFFER_SIZE];
-char ts_data_buffer_humidity[DATA_BUFFER_SIZE];
-char ts_data_buffer_co2[DATA_BUFFER_SIZE];
-
-static void render_callback(Canvas* canvas, void* ctx) {
-    UNUSED(ctx);
-
-    canvas_clear(canvas);
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 2, 10, "CO2 Sensor");
-
-    canvas_set_font(canvas, FontSecondary);
-    //canvas_draw_str(canvas, 2, 62, "Press back to exit.");
-
-    switch(sensor_current_status) {
-    case Initializing:
-        canvas_draw_str(canvas, 2, 30, "Initializing..");
-        break;
-    case NoSensor:
-        canvas_draw_str(canvas, 2, 30, "No sensor found!");
-        break;
-    case PendingUpdate: {
-        canvas_draw_str(canvas, 6, 24, "Temperature");
-        canvas_draw_str(canvas, 6, 38, "Humidity");
-        canvas_draw_str(canvas, 6, 52, "CO2");
-
-        //canvas_draw_str(canvas, 80, 24, "Humidity");
-
-        // Draw vertical lines
-        canvas_draw_line(canvas, 66, 16, 66, 55);
-        canvas_draw_line(canvas, 67, 16, 67, 55);
-
-        // Draw horizontal lines
-        canvas_draw_line(canvas, 3, 27, 144, 27);
-        canvas_draw_line(canvas, 3, 41, 144, 41);
-
-        // Draw temperature and humidity values
-        canvas_draw_str(canvas, 72, 24, ts_data_buffer_temperature_c);
-        canvas_draw_str(canvas, 102, 24, "C");
-        canvas_draw_str(canvas, 72, 38, ts_data_buffer_humidity);
-        canvas_draw_str(canvas, 102, 38, "%");
-        canvas_draw_str(canvas, 72, 52, ts_data_buffer_co2);
-        canvas_draw_str(canvas, 102, 52, "ppm");
-
-    } break;
-    default:
-        break;
-    }
+static bool co2_app_custom_event_callback(void* context, uint32_t event) {
+    furi_assert(context);
+    CO2App* app = context;
+    return scene_manager_handle_custom_event(app->scene_manager, event);
 }
 
-static void timer_callback(FuriMessageQueue* event_queue) {
-    furi_assert(event_queue);
-
-    PluginEvent event = {.type = EventTypeTick};
-    furi_message_queue_put(event_queue, &event, 0);
+static bool co2_app_back_event_callback(void* context) {
+    furi_assert(context);
+    CO2App* app = context;
+    return scene_manager_handle_back_event(app->scene_manager);
 }
 
-static void input_callback(InputEvent* input_event, FuriMessageQueue* event_queue) {
-    furi_assert(event_queue);
+bool co2_settings_load(CO2SensorSettings* settings) {
+    furi_assert(settings);
 
-    PluginEvent event = {.type = EventTypeKey, .input = *input_event};
-    furi_message_queue_put(event_queue, &event, FuriWaitForever);
+    return saved_struct_load(
+        CO2_SETTINGS_PATH,
+        settings,
+        sizeof(CO2SensorSettings),
+        CO2_SETTINGS_MAGIC,
+        CO2_SETTINGS_VERSION);
+}
+bool co2_settings_save(CO2SensorSettings* settings) {
+    furi_assert(settings);
+
+    return saved_struct_save(
+        CO2_SETTINGS_PATH,
+        settings,
+        sizeof(CO2SensorSettings),
+        CO2_SETTINGS_MAGIC,
+        CO2_SETTINGS_VERSION);
 }
 
-int32_t co2_sensor_app(void* p) {
-    UNUSED(p);
-    FuriMessageQueue* event_queue = furi_message_queue_alloc(8, sizeof(PluginEvent));
+CO2App* co2_app_alloc() {
+    CO2App* app = malloc(sizeof(CO2App));
 
-    // Register callbacks
-    ViewPort* view_port = view_port_alloc();
-    view_port_draw_callback_set(view_port, render_callback, NULL);
-    view_port_input_callback_set(view_port, input_callback, event_queue);
-
-    // Register viewport
-    Gui* gui = furi_record_open(RECORD_GUI);
-    gui_add_view_port(gui, view_port, GuiLayerFullscreen);
-
-    // Custom
-    SCD4x_init(SCD4x_SENSOR_SCD40);
-    enableDebugging();
-    if(!SCD4x_begin(true, false, false)) {
-        sensor_current_status = NoSensor;
-        furi_log_print_format(FuriLogLevelDebug, "SCD4x", "Begin: Fail");
-
-    } else {
-        sensor_current_status = Initializing;
-        furi_log_print_format(FuriLogLevelDebug, "SCD4x", "Begin: OK");
+    // Load settings
+    if(!co2_settings_load(&app->settings)) {
+        app->settings.low_power = false;
+        app->settings.auto_calibration = false;
     }
+    app->gui = furi_record_open(RECORD_GUI);
+    app->notifications = furi_record_open(RECORD_NOTIFICATION);
 
-    // Declare our variables
-    PluginEvent tsEvent;
-    float celsius, humidity = 0.0;
-    uint16_t co2 = 0;
+    // View Dispatcher and Scene Manager
+    app->view_dispatcher = view_dispatcher_alloc();
+    app->scene_manager = scene_manager_alloc(&co2_sensor_scene_handlers, app);
+    view_dispatcher_enable_queue(app->view_dispatcher);
+    view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
+    view_dispatcher_set_custom_event_callback(app->view_dispatcher, co2_app_custom_event_callback);
+    view_dispatcher_set_navigation_event_callback(
+        app->view_dispatcher, co2_app_back_event_callback);
 
-    // Create timer and register its callback
-    FuriTimer* timer = furi_timer_alloc(timer_callback, FuriTimerTypePeriodic, event_queue);
-    furi_timer_start(timer, furi_ms_to_ticks(1000));
+    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
-    // Used to notify the user by blinking red (error) or blue (fetch successful)
-    NotificationApp* notifications = furi_record_open(RECORD_NOTIFICATION);
+    // Gui Modules
+    /*
+    app->var_item_list = variable_item_list_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher,
+        CO2AppViewVarItemList,
+        variable_item_list_get_view(app->var_item_list));
+    */
 
-    while(1) {
-        furi_check(furi_message_queue_get(event_queue, &tsEvent, FuriWaitForever) == FuriStatusOk);
+    // Set first scene
+    scene_manager_next_scene(app->scene_manager, CO2SensorAppSceneMain);
+    return app;
+}
 
-        // Handle events
-        if(tsEvent.type == EventTypeKey) {
-            // We dont check for type here, we can check the type of keypress like: (event.input.type == InputTypeShort)
-            // Exit on back key
-            if(tsEvent.input.key == InputKeyBack) break;
+void co2_app_free(CO2App* app) {
+    furi_assert(app);
+    // Gui modules
+    //view_dispatcher_remove_view(app->view_dispatcher, CO2AppViewVarItemList);
+    //variable_item_list_free(app->var_item_list);
 
-        } else if(tsEvent.type == EventTypeTick) {
-            // Update sensor data
-            // Fetch data and set the sensor current status accordingly
-            if(readMeasurement()) {
-                furi_log_print_format(FuriLogLevelDebug, "SCD4x", "fresh data available");
-                celsius = getTemperature();
-                humidity = getHumidity();
-                co2 = getCO2();
-                sensor_current_status = PendingUpdate;
+    // View Dispatcher and Scene Manager
+    view_dispatcher_free(app->view_dispatcher);
+    scene_manager_free(app->scene_manager);
 
-                notification_message(notifications, &sequence_blink_blue_100);
-
-                snprintf(ts_data_buffer_temperature_c, DATA_BUFFER_SIZE, "%.2f", (double) celsius);
-                snprintf(ts_data_buffer_humidity, DATA_BUFFER_SIZE, "%.2f", (double) humidity);
-                snprintf(ts_data_buffer_co2, DATA_BUFFER_SIZE, "%d", co2);
-            }
-        }
-        furi_delay_tick(furi_ms_to_ticks(100));
-    }
-
-    // Dobby is freee (free our variables, Flipper will crash if we don't do this!)
-    furi_timer_free(timer);
-    gui_remove_view_port(gui, view_port);
-    view_port_free(view_port);
-    furi_message_queue_free(event_queue);
-
+    // Records
     furi_record_close(RECORD_NOTIFICATION);
     furi_record_close(RECORD_GUI);
+    free(app);
+}
 
+extern int32_t co2_sensor_app(void* p) {
+    UNUSED(p);
+    CO2App* app = co2_app_alloc();
+    view_dispatcher_run(app->view_dispatcher);
+    co2_settings_save(&app->settings);
+    co2_app_free(app);
     return 0;
 }
