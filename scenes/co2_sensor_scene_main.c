@@ -1,18 +1,29 @@
 #include "../co2_sensor.h"
 #include "../scd4x.h"
 
-static void timer_callback(FuriMessageQueue* event_queue) {
-    furi_assert(event_queue);
-
-    PluginEvent event = {.type = EventTypeTick};
-    furi_message_queue_put(event_queue, &event, 0);
+static void timer_callback(CO2App* app) {
+    furi_assert(app);
+    if(readMeasurement()) {
+        furi_log_print_format(FuriLogLevelDebug, "SCD4x", "fresh data available");
+        app->status = PendingUpdate;
+        notification_message(app->notifications, &sequence_blink_blue_100);
+        snprintf(
+            app->main_ctx->display_data.temperature,
+            DATA_BUFFER_SIZE,
+            "%.2f",
+            (double)getTemperature());
+        snprintf(
+            app->main_ctx->display_data.humidity, DATA_BUFFER_SIZE, "%.2f", (double)getHumidity());
+        snprintf(app->main_ctx->display_data.co2, DATA_BUFFER_SIZE, "%d", getCO2());
+    }
 }
 
-static void input_callback(InputEvent* input_event, FuriMessageQueue* event_queue) {
-    furi_assert(event_queue);
+static void input_callback(InputEvent* input_event, CO2App* app) {
+    furi_assert(app);
 
-    PluginEvent event = {.type = EventTypeKey, .input = *input_event};
-    furi_message_queue_put(event_queue, &event, FuriWaitForever);
+    if(input_event->key == InputKeyBack) {
+        view_dispatcher_send_custom_event(app->view_dispatcher, SceneEventExit);
+    }
 }
 
 static void render_callback(Canvas* canvas, void* ctx) {
@@ -35,8 +46,6 @@ static void render_callback(Canvas* canvas, void* ctx) {
         canvas_draw_str(canvas, 6, 24, "Temperature");
         canvas_draw_str(canvas, 6, 38, "Humidity");
         canvas_draw_str(canvas, 6, 52, "CO2");
-
-        //canvas_draw_str(canvas, 80, 24, "Humidity");
 
         // Draw vertical lines
         canvas_draw_line(canvas, 66, 16, 66, 55);
@@ -71,21 +80,18 @@ void co2_sensor_scene_main_on_enter(void* context) {
     app->main_ctx->display_data.humidity = malloc(DATA_BUFFER_SIZE);
     app->main_ctx->display_data.co2 = malloc(DATA_BUFFER_SIZE);
 
-    FuriMessageQueue* event_queue = furi_message_queue_alloc(8, sizeof(PluginEvent));
-    app->main_ctx->event_queue = event_queue;
-
     // Register callbacks
     ViewPort* view_port = view_port_alloc();
     app->main_ctx->viewport = view_port;
     view_port_draw_callback_set(view_port, render_callback, app);
-    view_port_input_callback_set(view_port, input_callback, event_queue);
+    view_port_input_callback_set(view_port, input_callback, app);
 
     // Register viewport
     gui_add_view_port(app->gui, view_port, GuiLayerFullscreen);
 
     // Custom
     SCD4x_init(SCD4x_SENSOR_SCD40);
-    enableDebugging();
+    //enableDebugging();
     if(!SCD4x_begin(true, app->settings.auto_calibration, false)) {
         app->status = NoSensor;
         furi_log_print_format(FuriLogLevelDebug, "SCD4x", "Begin: Fail");
@@ -95,80 +101,41 @@ void co2_sensor_scene_main_on_enter(void* context) {
         furi_log_print_format(FuriLogLevelDebug, "SCD4x", "Begin: OK");
     }
 
+    // Create timer and register its callback
+    FuriTimer* timer = furi_timer_alloc(timer_callback, FuriTimerTypePeriodic, app);
+    app->main_ctx->timer = timer;
+    furi_timer_start(timer, furi_ms_to_ticks(1000));
+
     // Declare our variables
     PluginEvent tsEvent;
     float celsius, humidity = 0.0;
     uint16_t co2 = 0;
-
-    // Create timer and register its callback
-    FuriTimer* timer = furi_timer_alloc(timer_callback, FuriTimerTypePeriodic, event_queue);
-    app->main_ctx->timer = timer;
-    furi_timer_start(timer, furi_ms_to_ticks(1000));
-
-    while(1) {
-        furi_check(furi_message_queue_get(event_queue, &tsEvent, FuriWaitForever) == FuriStatusOk);
-
-        // Handle events
-        if(tsEvent.type == EventTypeKey) {
-            // We dont check for type here, we can check the type of keypress like: (event.input.type == InputTypeShort)
-            // Exit on back key
-            if(tsEvent.input.key == InputKeyBack) break;
-
-        } else if(tsEvent.type == EventTypeTick) {
-            // Update sensor data
-            // Fetch data and set the sensor current status accordingly
-            if(readMeasurement()) {
-                furi_log_print_format(FuriLogLevelDebug, "SCD4x", "fresh data available");
-                celsius = getTemperature();
-                humidity = getHumidity();
-                co2 = getCO2();
-                app->status = PendingUpdate;
-
-                notification_message(app->notifications, &sequence_blink_blue_100);
-
-                snprintf(
-                    main_ctx->display_data.temperature, DATA_BUFFER_SIZE, "%.2f", (double)celsius);
-                snprintf(
-                    main_ctx->display_data.humidity, DATA_BUFFER_SIZE, "%.2f", (double)humidity);
-                snprintf(main_ctx->display_data.co2, DATA_BUFFER_SIZE, "%d", (double)co2);
-            }
-        }
-        furi_delay_tick(furi_ms_to_ticks(100));
-    }
 }
 
 bool co2_sensor_scene_main_on_event(void* context, SceneManagerEvent event) {
     CO2App* app = context;
     bool consumed = false;
 
-    FURI_LOG_D("SCD4x", "Got event.");
-
-    /*
     if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == BtSettingOn) {
-            furi_hal_bt_start_advertising();
-            app->settings.enabled = true;
-            consumed = true;
-        } else if(event.event == BtSettingOff) {
-            app->settings.enabled = false;
-            furi_hal_bt_stop_advertising();
-            consumed = true;
-        } else if(event.event == BtSettingsCustomEventForgetDevices) {
-            scene_manager_next_scene(app->scene_manager, BtSettingsAppSceneForgetDevConfirm);
-            consumed = true;
+        if(event.event == SceneEventExit) {
+            scene_manager_stop(app->scene_manager);
         }
+    } else if(event.type == SceneManagerEventTypeBack) {
+    } else if(event.type == SceneManagerEventTypeTick) {
     }
-    */
+
     return consumed;
 }
 
 void co2_sensor_scene_main_on_exit(void* context) {
     CO2App* app = context;
-
+    view_port_enabled_set(app->main_ctx->viewport, false);
+    view_port_draw_callback_set(app->main_ctx->viewport, NULL, NULL);
+    view_port_input_callback_set(app->main_ctx->viewport, NULL, NULL);
+    furi_timer_stop(app->main_ctx->timer);
     furi_timer_free(app->main_ctx->timer);
-    gui_remove_view_port(app->gui, app->main_ctx->viewport);
-    view_port_free(app->main_ctx->viewport);
-    furi_message_queue_free(app->main_ctx->event_queue);
-    free(app->main_ctx);
-    app->main_ctx = NULL;
+    free(app->main_ctx->display_data.temperature);
+    free(app->main_ctx->display_data.humidity);
+    free(app->main_ctx->display_data.co2);
+    view_dispatcher_stop(app->view_dispatcher);
 }

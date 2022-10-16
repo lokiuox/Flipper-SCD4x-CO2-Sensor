@@ -19,7 +19,7 @@
 
 #define DATA_BUFFER_SIZE 8
 #define CO2_SETTINGS_FILE_NAME ".co2sensor.settings"
-#define CO2_SETTINGS_PATH INT_PATH(CO2_SETTINGS_FILE_NAME)
+#define CO2_SETTINGS_PATH EXT_PATH(CO2_SETTINGS_FILE_NAME)
 #define CO2_SETTINGS_VERSION (0)
 #define CO2_SETTINGS_MAGIC (0x42)
 
@@ -78,6 +78,8 @@ typedef enum {
     CO2AppViewAppViewDialog,
     CO2AppViewAppViewPopup,
 } CO2AppView;
+
+typedef enum { SceneEventExit } CO2AppSceneEvent;
 
 extern const NotificationSequence sequence_blink_red_100;
 extern const NotificationSequence sequence_blink_blue_100;

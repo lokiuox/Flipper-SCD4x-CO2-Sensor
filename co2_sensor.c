@@ -3,6 +3,7 @@
 #include <gui/gui.h>
 #include <input/input.h>
 #include <gui/modules/submenu.h>
+#include <gui/modules/empty_screen.h>
 #include <gui/modules/dialog_ex.h>
 #include <toolbox/saved_struct.h>
 #include <storage/storage.h>
@@ -22,6 +23,7 @@ static bool co2_app_custom_event_callback(void* context, uint32_t event) {
 static bool co2_app_back_event_callback(void* context) {
     furi_assert(context);
     CO2App* app = context;
+
     return scene_manager_handle_back_event(app->scene_manager);
 }
 
@@ -68,15 +70,6 @@ CO2App* co2_app_alloc() {
 
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
-    // Gui Modules
-    /*
-    app->var_item_list = variable_item_list_alloc();
-    view_dispatcher_add_view(
-        app->view_dispatcher,
-        CO2AppViewVarItemList,
-        variable_item_list_get_view(app->var_item_list));
-    */
-
     // Set first scene
     scene_manager_next_scene(app->scene_manager, CO2SensorAppSceneMain);
     return app;
@@ -84,13 +77,11 @@ CO2App* co2_app_alloc() {
 
 void co2_app_free(CO2App* app) {
     furi_assert(app);
-    // Gui modules
-    //view_dispatcher_remove_view(app->view_dispatcher, CO2AppViewVarItemList);
-    //variable_item_list_free(app->var_item_list);
 
     // View Dispatcher and Scene Manager
     view_dispatcher_free(app->view_dispatcher);
     scene_manager_free(app->scene_manager);
+    free(app->main_ctx);
 
     // Records
     furi_record_close(RECORD_NOTIFICATION);
