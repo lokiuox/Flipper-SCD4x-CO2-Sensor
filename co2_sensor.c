@@ -126,7 +126,6 @@ int32_t co2_sensor_app(void* p) {
 
     // Declare our variables
     PluginEvent tsEvent;
-    bool sensorFound = false;
     float celsius, humidity = 0.0;
     uint16_t co2 = 0;
 
@@ -158,8 +157,8 @@ int32_t co2_sensor_app(void* p) {
 
                 notification_message(notifications, &sequence_blink_blue_100);
 
-                snprintf(ts_data_buffer_temperature_c, DATA_BUFFER_SIZE, "%.2f", celsius);
-                snprintf(ts_data_buffer_humidity, DATA_BUFFER_SIZE, "%.2f", humidity);
+                snprintf(ts_data_buffer_temperature_c, DATA_BUFFER_SIZE, "%.2f", (double) celsius);
+                snprintf(ts_data_buffer_humidity, DATA_BUFFER_SIZE, "%.2f", (double) humidity);
                 snprintf(ts_data_buffer_co2, DATA_BUFFER_SIZE, "%d", co2);
             }
         }
