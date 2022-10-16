@@ -965,7 +965,7 @@ bool sendCommand(uint16_t command) {
     return success;
 }
 
-bool recvData(const uint8_t* data, uint8_t size) {
+bool recvData(uint8_t* data, uint8_t size) {
     furi_hal_i2c_acquire(I2C_BUS);
     if(!furi_hal_i2c_is_device_ready(I2C_BUS, SCD4x_ADDRESS, TIMEOUT)) {
         furi_hal_i2c_release(I2C_BUS);

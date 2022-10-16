@@ -87,7 +87,7 @@ typedef union {
 
 typedef enum { SCD4x_SENSOR_SCD40 = 0, SCD4x_SENSOR_SCD41 } scd4x_sensor_type_e;
 
-bool recvData(const uint8_t* data, uint8_t size);
+bool recvData(uint8_t* data, uint8_t size);
 
 void SCD4x_init(scd4x_sensor_type_e sensorType);
 
