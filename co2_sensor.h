@@ -29,16 +29,6 @@ typedef enum {
     PendingUpdate,
 } SensorStatus;
 
-typedef enum {
-    EventTypeTick,
-    EventTypeKey,
-} EventType;
-
-typedef struct {
-    EventType type;
-    InputEvent input;
-} PluginEvent;
-
 typedef struct {
     char* temperature;
     char* humidity;
@@ -52,32 +42,19 @@ typedef struct {
 
 typedef struct {
     FuriTimer* timer;
-    ViewPort* viewport;
-    FuriMessageQueue* event_queue;
     CO2Gui display_data;
 } CO2AppMainSceneCtx;
 
 typedef struct {
     Gui* gui;
     NotificationApp* notifications;
-    //ViewPort* view_port; //TODO: not sure if needed
-    //FuriMessageQueue* event_queue; //TODO: not sure if needed
+    ViewPort* viewport;
     SceneManager* scene_manager;
     ViewDispatcher* view_dispatcher;
-    VariableItemList* var_item_list;
-    DialogEx* dialog;
-    Popup* popup;
     SensorStatus status;
     CO2SensorSettings settings;
     CO2AppMainSceneCtx* main_ctx;
 } CO2App;
-
-typedef enum {
-    CO2AppViewMain,
-    CO2AppViewVarItemList,
-    CO2AppViewAppViewDialog,
-    CO2AppViewAppViewPopup,
-} CO2AppView;
 
 typedef enum { SceneEventExit } CO2AppSceneEvent;
 

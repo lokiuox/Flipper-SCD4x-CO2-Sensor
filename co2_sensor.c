@@ -23,7 +23,6 @@ static bool co2_app_custom_event_callback(void* context, uint32_t event) {
 static bool co2_app_back_event_callback(void* context) {
     furi_assert(context);
     CO2App* app = context;
-
     return scene_manager_handle_back_event(app->scene_manager);
 }
 
@@ -58,6 +57,20 @@ CO2App* co2_app_alloc() {
     }
     app->gui = furi_record_open(RECORD_GUI);
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
+    ViewPort* view_port = view_port_alloc();
+    app->viewport = view_port;
+
+    // Register viewport
+    gui_add_view_port(app->gui, app->viewport, GuiLayerFullscreen);
+
+    // Alloc object for main scene context
+    CO2AppMainSceneCtx* main_ctx = malloc(sizeof(CO2AppMainSceneCtx));
+    app->main_ctx = main_ctx;
+
+    CO2Gui* display_data = malloc(sizeof(display_data));
+    app->main_ctx->display_data.temperature = malloc(DATA_BUFFER_SIZE);
+    app->main_ctx->display_data.humidity = malloc(DATA_BUFFER_SIZE);
+    app->main_ctx->display_data.co2 = malloc(DATA_BUFFER_SIZE);
 
     // View Dispatcher and Scene Manager
     app->view_dispatcher = view_dispatcher_alloc();
@@ -79,6 +92,7 @@ void co2_app_free(CO2App* app) {
     furi_assert(app);
 
     // View Dispatcher and Scene Manager
+    view_port_enabled_set(app->viewport, false);
     view_dispatcher_free(app->view_dispatcher);
     scene_manager_free(app->scene_manager);
     free(app->main_ctx);
@@ -95,5 +109,6 @@ extern int32_t co2_sensor_app(void* p) {
     view_dispatcher_run(app->view_dispatcher);
     co2_settings_save(&app->settings);
     co2_app_free(app);
+    FURI_LOG_D("SCD4x", "COMPLETE");
     return 0;
 }

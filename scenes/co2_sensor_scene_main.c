@@ -1,7 +1,8 @@
 #include "../co2_sensor.h"
 #include "../scd4x.h"
 
-static void timer_callback(CO2App* app) {
+static void timer_callback(void* ctx) {
+    CO2App* app = ctx;
     furi_assert(app);
     if(readMeasurement()) {
         furi_log_print_format(FuriLogLevelDebug, "SCD4x", "fresh data available");
@@ -18,11 +19,12 @@ static void timer_callback(CO2App* app) {
     }
 }
 
-static void input_callback(InputEvent* input_event, CO2App* app) {
+static void input_callback(InputEvent* input_event, void* ctx) {
+    CO2App* app = ctx;
     furi_assert(app);
 
     if(input_event->key == InputKeyBack) {
-        view_dispatcher_send_custom_event(app->view_dispatcher, SceneEventExit);
+        scene_manager_stop(app->scene_manager);
     }
 }
 
@@ -72,22 +74,9 @@ static void render_callback(Canvas* canvas, void* ctx) {
 void co2_sensor_scene_main_on_enter(void* context) {
     CO2App* app = context;
 
-    CO2AppMainSceneCtx* main_ctx = malloc(sizeof(CO2AppMainSceneCtx));
-    app->main_ctx = main_ctx;
-
-    CO2Gui* display_data = malloc(sizeof(display_data));
-    app->main_ctx->display_data.temperature = malloc(DATA_BUFFER_SIZE);
-    app->main_ctx->display_data.humidity = malloc(DATA_BUFFER_SIZE);
-    app->main_ctx->display_data.co2 = malloc(DATA_BUFFER_SIZE);
-
     // Register callbacks
-    ViewPort* view_port = view_port_alloc();
-    app->main_ctx->viewport = view_port;
-    view_port_draw_callback_set(view_port, render_callback, app);
-    view_port_input_callback_set(view_port, input_callback, app);
-
-    // Register viewport
-    gui_add_view_port(app->gui, view_port, GuiLayerFullscreen);
+    view_port_draw_callback_set(app->viewport, render_callback, app);
+    view_port_input_callback_set(app->viewport, input_callback, app);
 
     // Custom
     SCD4x_init(SCD4x_SENSOR_SCD40);
@@ -105,11 +94,6 @@ void co2_sensor_scene_main_on_enter(void* context) {
     FuriTimer* timer = furi_timer_alloc(timer_callback, FuriTimerTypePeriodic, app);
     app->main_ctx->timer = timer;
     furi_timer_start(timer, furi_ms_to_ticks(1000));
-
-    // Declare our variables
-    PluginEvent tsEvent;
-    float celsius, humidity = 0.0;
-    uint16_t co2 = 0;
 }
 
 bool co2_sensor_scene_main_on_event(void* context, SceneManagerEvent event) {
@@ -117,9 +101,6 @@ bool co2_sensor_scene_main_on_event(void* context, SceneManagerEvent event) {
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == SceneEventExit) {
-            scene_manager_stop(app->scene_manager);
-        }
     } else if(event.type == SceneManagerEventTypeBack) {
     } else if(event.type == SceneManagerEventTypeTick) {
     }
@@ -129,13 +110,9 @@ bool co2_sensor_scene_main_on_event(void* context, SceneManagerEvent event) {
 
 void co2_sensor_scene_main_on_exit(void* context) {
     CO2App* app = context;
-    view_port_enabled_set(app->main_ctx->viewport, false);
-    view_port_draw_callback_set(app->main_ctx->viewport, NULL, NULL);
-    view_port_input_callback_set(app->main_ctx->viewport, NULL, NULL);
+    view_port_draw_callback_set(app->viewport, NULL, NULL);
+    view_port_input_callback_set(app->viewport, NULL, NULL);
     furi_timer_stop(app->main_ctx->timer);
     furi_timer_free(app->main_ctx->timer);
-    free(app->main_ctx->display_data.temperature);
-    free(app->main_ctx->display_data.humidity);
-    free(app->main_ctx->display_data.co2);
     view_dispatcher_stop(app->view_dispatcher);
 }
