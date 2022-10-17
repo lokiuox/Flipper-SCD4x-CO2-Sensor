@@ -175,6 +175,10 @@ void co2_sensor_scene_main_on_enter(void* context) {
     view_port_input_callback_set(app->viewport, input_callback, app);
     app->main_ctx->selected_gui_mode = app->settings.preferred_mode;
 
+    if(app->settings.backlight_always_on) {
+        notification_message(app->notifications, &sequence_display_backlight_enforce_on);
+    }
+
     // Custom
     SCD4x_init(SCD4x_SENSOR_SCD40);
     //enableDebugging();
@@ -207,6 +211,7 @@ bool co2_sensor_scene_main_on_event(void* context, SceneManagerEvent event) {
 
 void co2_sensor_scene_main_on_exit(void* context) {
     CO2App* app = context;
+    notification_message(app->notifications, &sequence_display_backlight_enforce_auto);
     app->settings.preferred_mode = app->main_ctx->selected_gui_mode;
     view_port_draw_callback_set(app->viewport, NULL, NULL);
     view_port_input_callback_set(app->viewport, NULL, NULL);

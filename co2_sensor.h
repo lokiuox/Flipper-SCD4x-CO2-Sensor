@@ -41,7 +41,9 @@ typedef struct {
     bool low_power;
     bool auto_calibration;
     CO2AppGUIMode preferred_mode;
-} CO2SensorSettings;
+    bool library_debugging; //TODO implement
+    bool backlight_always_on;
+} CO2AppSettings;
 
 typedef struct {
     FuriTimer* timer;
@@ -56,7 +58,7 @@ typedef struct {
     SceneManager* scene_manager;
     ViewDispatcher* view_dispatcher;
     SensorStatus status;
-    CO2SensorSettings settings;
+    CO2AppSettings settings;
     CO2AppMainSceneCtx* main_ctx;
 } CO2App;
 
@@ -64,6 +66,8 @@ typedef enum { SceneEventExit } CO2AppSceneEvent;
 
 extern const NotificationSequence sequence_blink_red_100;
 extern const NotificationSequence sequence_blink_blue_100;
+extern const NotificationSequence sequence_display_backlight_enforce_on;
+extern const NotificationSequence sequence_display_backlight_enforce_auto;
 
-bool co2_settings_load(CO2SensorSettings* settings);
-bool co2_settings_save(CO2SensorSettings* settings);
+bool co2_settings_load(CO2AppSettings* settings);
+bool co2_settings_save(CO2AppSettings* settings);

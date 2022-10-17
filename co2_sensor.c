@@ -26,23 +26,23 @@ static bool co2_app_back_event_callback(void* context) {
     return scene_manager_handle_back_event(app->scene_manager);
 }
 
-bool co2_settings_load(CO2SensorSettings* settings) {
+bool co2_settings_load(CO2AppSettings* settings) {
     furi_assert(settings);
 
     return saved_struct_load(
         CO2_SETTINGS_PATH,
         settings,
-        sizeof(CO2SensorSettings),
+        sizeof(CO2AppSettings),
         CO2_SETTINGS_MAGIC,
         CO2_SETTINGS_VERSION);
 }
-bool co2_settings_save(CO2SensorSettings* settings) {
+bool co2_settings_save(CO2AppSettings* settings) {
     furi_assert(settings);
 
     return saved_struct_save(
         CO2_SETTINGS_PATH,
         settings,
-        sizeof(CO2SensorSettings),
+        sizeof(CO2AppSettings),
         CO2_SETTINGS_MAGIC,
         CO2_SETTINGS_VERSION);
 }
