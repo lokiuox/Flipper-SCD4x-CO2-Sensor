@@ -54,6 +54,7 @@ CO2App* co2_app_alloc() {
     if(!co2_settings_load(&app->settings)) {
         app->settings.low_power = false;
         app->settings.auto_calibration = false;
+        app->settings.preferred_mode = GUIModeNormal;
     }
     app->gui = furi_record_open(RECORD_GUI);
     app->notifications = furi_record_open(RECORD_NOTIFICATION);

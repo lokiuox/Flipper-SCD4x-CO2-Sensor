@@ -35,14 +35,18 @@ typedef struct {
     char* co2;
 } CO2Gui;
 
+typedef enum { GUIModeNormal, GUIModeBigNumbers1, GUIModeBigNumbers2, GUIModeNum } CO2AppGUIMode;
+
 typedef struct {
     bool low_power;
     bool auto_calibration;
+    CO2AppGUIMode preferred_mode;
 } CO2SensorSettings;
 
 typedef struct {
     FuriTimer* timer;
     CO2Gui display_data;
+    CO2AppGUIMode selected_gui_mode;
 } CO2AppMainSceneCtx;
 
 typedef struct {
