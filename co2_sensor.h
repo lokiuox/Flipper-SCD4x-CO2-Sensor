@@ -64,10 +64,5 @@ typedef struct {
 
 typedef enum { SceneEventExit } CO2AppSceneEvent;
 
-extern const NotificationSequence sequence_blink_red_100;
-extern const NotificationSequence sequence_blink_blue_100;
-extern const NotificationSequence sequence_display_backlight_enforce_on;
-extern const NotificationSequence sequence_display_backlight_enforce_auto;
-
 bool co2_settings_load(CO2AppSettings* settings);
 bool co2_settings_save(CO2AppSettings* settings);

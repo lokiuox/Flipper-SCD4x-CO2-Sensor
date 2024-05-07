@@ -48,7 +48,6 @@ static void input_callback(InputEvent* input_event, void* ctx) {
 
 static void render_callback(Canvas* canvas, void* ctx) {
     CO2App* app = ctx;
-    char buf[8];
 
     canvas_clear(canvas);
     switch(app->status) {
@@ -197,8 +196,9 @@ void co2_sensor_scene_main_on_enter(void* context) {
     furi_timer_start(timer, furi_ms_to_ticks(1000));
 }
 
+
 bool co2_sensor_scene_main_on_event(void* context, SceneManagerEvent event) {
-    CO2App* app = context;
+    (void)(context); // Prevent unused parameter warning
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
@@ -208,6 +208,7 @@ bool co2_sensor_scene_main_on_event(void* context, SceneManagerEvent event) {
 
     return consumed;
 }
+
 
 void co2_sensor_scene_main_on_exit(void* context) {
     CO2App* app = context;

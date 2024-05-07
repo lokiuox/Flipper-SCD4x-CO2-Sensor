@@ -1,5 +1,5 @@
 App(
-    appid="co2_sensor",
+    appid="scd4x_co2_sensor",
     name="[SCD4x] CO2 Sensor",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="co2_sensor_app",
