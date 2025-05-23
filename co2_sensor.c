@@ -31,9 +31,6 @@ typedef struct {
 
 static SensorStatus sensor_current_status = Initializing;
 
-extern const NotificationSequence sequence_blink_red_100;
-extern const NotificationSequence sequence_blink_blue_100;
-
 // Temperature and Humidity data buffers, ready to print
 char ts_data_buffer_temperature_c[DATA_BUFFER_SIZE];
 char ts_data_buffer_humidity[DATA_BUFFER_SIZE];
@@ -85,14 +82,16 @@ static void render_callback(Canvas* canvas, void* ctx) {
     }
 }
 
-static void timer_callback(FuriMessageQueue* event_queue) {
+static void timer_callback(void* context) {
+    FuriMessageQueue* event_queue = context;
     furi_assert(event_queue);
 
     PluginEvent event = {.type = EventTypeTick};
     furi_message_queue_put(event_queue, &event, 0);
 }
 
-static void input_callback(InputEvent* input_event, FuriMessageQueue* event_queue) {
+static void input_callback(InputEvent* input_event, void* context) {
+    FuriMessageQueue* event_queue = context;
     furi_assert(event_queue);
 
     PluginEvent event = {.type = EventTypeKey, .input = *input_event};
